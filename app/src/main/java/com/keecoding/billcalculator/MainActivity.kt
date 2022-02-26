@@ -1,6 +1,7 @@
 package com.keecoding.billcalculator
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
@@ -46,7 +47,7 @@ class MainActivity : ComponentActivity() {
                         billState.value = it
                     }
                 }
-           }
+            }
         }
     }
 }
@@ -56,7 +57,6 @@ fun MyApp(content: @Composable () -> Unit) {
     BillCalculatorTheme(
         darkTheme = false,
     ) {
-        // A surface container using the 'background' color from the theme
         Surface(
             modifier = Modifier
                 .padding(12.dp),
@@ -69,10 +69,11 @@ fun MyApp(content: @Composable () -> Unit) {
 
 @Composable
 fun BillCard(amount: MutableState<Double>) {
-    Surface(modifier = Modifier
-        .fillMaxWidth()
-        .height(150.dp)
-        .clip(shape = RoundedCornerShape(corner = CornerSize(12.dp))),
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(150.dp)
+            .clip(shape = RoundedCornerShape(corner = CornerSize(12.dp))),
         color = Color(0xFF65FF85),
         elevation = 4.dp
     ) {
@@ -106,20 +107,14 @@ fun BillForm(
         mutableStateOf(1)
     }
     val totalBillState = remember {
-        mutableStateOf(
-            if (validState) {
-                df.format(
-                    ((currentBillState.value.trim().toDouble()/10.0) + ((currentBillState.value.trim().toDouble()/10.0) * tipState.value) ) / splitState.value).toDouble()
-            } else {
-                0.0
-            }
-        )
+        mutableStateOf(0.0)
     }
     val focusManager = LocalFocusManager.current
-    Surface(modifier = Modifier
-        .padding(2.dp)
-        .padding(top = 12.dp)
-        .fillMaxWidth(),
+    Surface(
+        modifier = Modifier
+            .padding(2.dp)
+            .padding(top = 12.dp)
+            .fillMaxWidth(),
         shape = RoundedCornerShape(corner = CornerSize(8.dp)),
         border = BorderStroke(1.dp, Color.LightGray)
     ) {
@@ -128,7 +123,7 @@ fun BillForm(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Start
         ) {
-            var tipp = 0f
+            val tipp = 0
             InputField(
                 modifier = Modifier.fillMaxWidth(),
                 valueState = currentBillState,
@@ -140,21 +135,29 @@ fun BillForm(
                     onValChange(totalBillState.value)
                     focusManager.clearFocus()
                 })
-            Row(modifier = Modifier.padding(3.dp),
-            horizontalArrangement = Arrangement.Start) {
+            Row(
+                modifier = Modifier.padding(3.dp),
+                horizontalArrangement = Arrangement.Start
+            ) {
                 Text(text = "Split", modifier = Modifier.align(alignment = CenterVertically))
                 Spacer(modifier = Modifier.width(120.dp))
-                Row(modifier = Modifier.padding(horizontal = 3.dp),
-                horizontalArrangement = Arrangement.End) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 3.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
                     RoundIconButton(
                         imageVector = Icons.Default.Remove,
-                        onClick = { if (splitState.value>1) {
-                            splitState.value--
-                            onValChange(totalBillState.value)
-                        } })
-                    Text(text = splitState.value.toString(), modifier = Modifier
-                        .align(CenterVertically)
-                        .padding(start = 9.dp, end = 9.dp))
+                        onClick = {
+                            if (splitState.value > 1) {
+                                splitState.value--
+                                onValChange(totalBillState.value)
+                            }
+                        })
+                    Text(
+                        text = splitState.value.toString(), modifier = Modifier
+                            .align(CenterVertically)
+                            .padding(start = 9.dp, end = 9.dp)
+                    )
                     RoundIconButton(
                         imageVector = Icons.Default.Add,
                         onClick = {
@@ -164,25 +167,31 @@ fun BillForm(
                 }
             }
             Row(modifier = Modifier.padding(top = 24.dp)) {
-                Text(text = "Tip", modifier = Modifier
-                    .align(CenterVertically))
+                Text(
+                    text = "Tip / Person", modifier = Modifier
+                        .align(CenterVertically)
+                )
                 Spacer(modifier = Modifier.width(200.dp))
-                val tip: Float = if (validState) currentBillState.value.toFloat() * tipState.value else 0.0F
+                val tip: Float =
+                    if (validState) currentBillState.value.toFloat() * tipState.value else 0.0F
                 val roundoff = (tip * 100.0).roundToInt() / 100
-                tipp = tip
-                Text(text = "$${df.format(roundoff.toDouble()/splitState.value.toDouble())}")
+                Text(text = "$${df.format(roundoff.toDouble() / splitState.value.toDouble())}")
             }
-            Column(horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                 Text(text = "${(tipState.value * 100).toInt()}%")
                 Spacer(modifier = Modifier.height(16.dp))
                 Slider(value = tipState.value, onValueChange = {
                     tipState.value = it
                     onValChange(totalBillState.value)
+                    Log.d("ddd", "BillForm: $tipp")
                 })
             }
             val currentState = if (validState) currentBillState.value.trim().toFloat() else 0f
-            totalBillState.value = ((currentState + currentState * tipp) / splitState.value).toDouble()
+            totalBillState.value =
+                ((currentState + (currentState * tipState.value)) / splitState.value).toDouble()
             totalBillState.value = ((totalBillState.value * 100.0).roundToInt() / 100).toDouble()
         }
     }

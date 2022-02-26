@@ -18,7 +18,6 @@ val IconButtonSizedModifier = Modifier.size(40.dp)
 
 @Composable
 fun RoundIconButton(
-    modifier: Modifier = Modifier,
     imageVector: ImageVector,
     onClick: () -> Unit,
     tint: Color = Color.Black.copy(alpha = 0.8f),
