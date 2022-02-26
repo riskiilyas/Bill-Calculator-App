@@ -1,59 +1,50 @@
 package com.keecoding.billcalculator
 
-import android.content.Context
-import android.icu.text.UnicodeSetIterator
 import android.os.Bundle
-import android.widget.Space
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
-import androidx.compose.material.TextField
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Adb
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Alignment.Companion.Start
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.LocalTextInputService
-import androidx.compose.ui.platform.textInputServiceFactory
-import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextInputService
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.keecoding.billcalculator.components.InputField
 import com.keecoding.billcalculator.ui.theme.BillCalculatorTheme
 import com.keecoding.billcalculator.widgets.RoundIconButton
+import java.text.DecimalFormat
+import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { 
+        setContent {
+            val billState = remember {
+                mutableStateOf(0.0)
+            }
             MyApp {
                 Column {
-                    BillCard()
-                    MainContent(this@MainActivity)
+                    BillCard(billState)
+                    BillForm {
+                        billState.value = it
+                    }
                 }
            }
         }
@@ -77,8 +68,7 @@ fun MyApp(content: @Composable () -> Unit) {
 }
 
 @Composable
-@Preview
-fun BillCard(amount: Double = 0.0) {
+fun BillCard(amount: MutableState<Double>) {
     Surface(modifier = Modifier
         .fillMaxWidth()
         .height(150.dp)
@@ -92,28 +82,38 @@ fun BillCard(amount: Double = 0.0) {
             verticalArrangement = Arrangement.Center
         ) {
             Text(text = "Total as Person")
-            Text(text = "$$amount", style = MaterialTheme.typography.h5)
+            Text(text = "$${amount.value}", style = MaterialTheme.typography.h5)
         }
     }
 }
 
 @Composable
-fun MainContent(context: Context) {
-    BillForm() { billAmt ->
-        Toast.makeText(context, "$$billAmt", Toast.LENGTH_SHORT).show()
-    }
-}
-
-@Composable
 fun BillForm(
-    modifier: Modifier = Modifier,
-    onValChange: (String) -> Unit = {}
+    onValChange: (Double) -> Unit = {}
 ) {
-    val totalBillState = remember {
+    val df = DecimalFormat("0.00");
+
+    val currentBillState = remember {
         mutableStateOf("")
     }
-    val validState = remember(totalBillState.value) {
-        totalBillState.value.trim().isNotBlank()
+    val validState = remember(currentBillState.value) {
+        currentBillState.value.trim().isNotBlank()
+    }
+    val tipState = remember {
+        mutableStateOf(0f)
+    }
+    val splitState = remember {
+        mutableStateOf(1)
+    }
+    val totalBillState = remember {
+        mutableStateOf(
+            if (validState) {
+                df.format(
+                    ((currentBillState.value.trim().toDouble()/10.0) + ((currentBillState.value.trim().toDouble()/10.0) * tipState.value) ) / splitState.value).toDouble()
+            } else {
+                0.0
+            }
+        )
     }
     val focusManager = LocalFocusManager.current
     Surface(modifier = Modifier
@@ -128,35 +128,62 @@ fun BillForm(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Start
         ) {
+            var tipp = 0f
             InputField(
                 modifier = Modifier.fillMaxWidth(),
-                valueState = totalBillState,
+                valueState = currentBillState,
                 labelId = "Enter Bill",
                 enabled = true,
                 isSingleLine = true,
                 onAction = KeyboardActions {
                     if (!validState) return@KeyboardActions
-                    onValChange(totalBillState.value.trim())
+                    onValChange(totalBillState.value)
                     focusManager.clearFocus()
                 })
-            if (validState) {
-                Row(modifier = Modifier.padding(3.dp),
-                horizontalArrangement = Arrangement.Start) {
-                    Text(text = "Split", modifier = Modifier.align(alignment = CenterVertically))
-                    Spacer(modifier = Modifier.width(120.dp))
-                    Row(modifier = Modifier.padding(horizontal = 3.dp),
-                    horizontalArrangement = Arrangement.End) {
-                        RoundIconButton(
-                            imageVector = Icons.Default.Remove,
-                            onClick = {  })
-                        RoundIconButton(
-                            imageVector = Icons.Default.Add,
-                            onClick = {})
-                    }
+            Row(modifier = Modifier.padding(3.dp),
+            horizontalArrangement = Arrangement.Start) {
+                Text(text = "Split", modifier = Modifier.align(alignment = CenterVertically))
+                Spacer(modifier = Modifier.width(120.dp))
+                Row(modifier = Modifier.padding(horizontal = 3.dp),
+                horizontalArrangement = Arrangement.End) {
+                    RoundIconButton(
+                        imageVector = Icons.Default.Remove,
+                        onClick = { if (splitState.value>1) {
+                            splitState.value--
+                            onValChange(totalBillState.value)
+                        } })
+                    Text(text = splitState.value.toString(), modifier = Modifier
+                        .align(CenterVertically)
+                        .padding(start = 9.dp, end = 9.dp))
+                    RoundIconButton(
+                        imageVector = Icons.Default.Add,
+                        onClick = {
+                            splitState.value++
+                            onValChange(totalBillState.value)
+                        })
                 }
-            } else {
-                Box(modifier = Modifier)
             }
+            Row(modifier = Modifier.padding(top = 24.dp)) {
+                Text(text = "Tip", modifier = Modifier
+                    .align(CenterVertically))
+                Spacer(modifier = Modifier.width(200.dp))
+                val tip: Float = if (validState) currentBillState.value.toFloat() * tipState.value else 0.0F
+                val roundoff = (tip * 100.0).roundToInt() / 100
+                tipp = tip
+                Text(text = "$${df.format(roundoff.toDouble()/splitState.value.toDouble())}")
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center) {
+                Text(text = "${(tipState.value * 100).toInt()}%")
+                Spacer(modifier = Modifier.height(16.dp))
+                Slider(value = tipState.value, onValueChange = {
+                    tipState.value = it
+                    onValChange(totalBillState.value)
+                })
+            }
+            val currentState = if (validState) currentBillState.value.trim().toFloat() else 0f
+            totalBillState.value = ((currentState + currentState * tipp) / splitState.value).toDouble()
+            totalBillState.value = ((totalBillState.value * 100.0).roundToInt() / 100).toDouble()
         }
     }
 }
