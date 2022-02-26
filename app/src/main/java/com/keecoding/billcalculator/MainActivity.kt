@@ -1,7 +1,6 @@
 package com.keecoding.billcalculator
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
@@ -24,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.keecoding.billcalculator.components.InputField
@@ -74,7 +74,7 @@ fun BillCard(amount: MutableState<Double>) {
             .fillMaxWidth()
             .height(150.dp)
             .clip(shape = RoundedCornerShape(corner = CornerSize(12.dp))),
-        color = Color(0xFF65FF85),
+        color = colorResource(id = R.color.statusBarC),
         elevation = 4.dp
     ) {
         Column(
@@ -82,8 +82,8 @@ fun BillCard(amount: MutableState<Double>) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(text = "Total as Person")
-            Text(text = "$${amount.value}", style = MaterialTheme.typography.h5)
+            Text(text = "Total as Person", color = Color.White)
+            Text(text = "$${amount.value}", style = MaterialTheme.typography.h5, color = Color.White)
         }
     }
 }
@@ -186,7 +186,6 @@ fun BillForm(
                 Slider(value = tipState.value, onValueChange = {
                     tipState.value = it
                     onValChange(totalBillState.value)
-                    Log.d("ddd", "BillForm: $tipp")
                 })
             }
             val currentState = if (validState) currentBillState.value.trim().toFloat() else 0f
